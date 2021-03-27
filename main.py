@@ -40,7 +40,7 @@ class SlimeWindow(mglw.WindowConfig):
     window_size = (1280, 720)
     resource_dir = (pathlib.Path(__file__).parent / "resources").resolve()
     map_size = (2560, 1440)
-    local_size = 512
+    local_size = 1024
     vsync = True
 
     def __init__(self, *args, **kwargs):
@@ -206,9 +206,9 @@ class SlimeWindow(mglw.WindowConfig):
         if imgui.begin("Actions"):
             imgui.push_item_width(imgui.get_window_width() * 0.33)
             changed, SlimeConfig.N = imgui.input_int(
-                "Number of Slimes", SlimeConfig.N, step=1024, step_fast=16384
+                "Number of Slimes", SlimeConfig.N, step=1024, step_fast=2**15
             )
-            SlimeConfig.N = min(max(1024, SlimeConfig.N), 2 ** 23)
+            SlimeConfig.N = min(max(2048, SlimeConfig.N), 2**24)
             if imgui.button("Restart Slimes"):
                 self.restart_sim()
 
