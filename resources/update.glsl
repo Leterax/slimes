@@ -7,6 +7,8 @@
 #define local_size 1
 
 #define PI 3.141592653
+#define dt 0.0166
+
 
 layout (local_size_x = local_size, local_size_y = 1, local_size_z = 1) in;
 
@@ -23,7 +25,7 @@ layout(std430, binding=2) restrict buffer inslimes {
 
 uniform int N;
 
-uniform float dt;
+// uniform float dt;
 uniform float moveSpeed;
 uniform float senorAngleSpacing;
 uniform float sensorDst;

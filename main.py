@@ -1,6 +1,7 @@
 import math
 import pathlib
 import moderngl_window as mglw
+from moderngl_window.capture.ffmpeg import FFmpegCapture
 from moderngl_window.geometry import quad_fs
 import moderngl as mgl
 import numpy as np
@@ -16,22 +17,22 @@ def gen_data(N, size):
     a = size[0] / 2 + np.cos(angles) * dst
     b = size[1] / 2 + np.sin(angles) * dst
 
-    return np.c_[a, b, (2 * np.pi) - angles, np.empty(N)]
+    return np.c_[a, b, (np.pi + angles), np.empty(N)]
 
 
 class SlimeConfig:
-    N = 50_000
+    N = 1_000_000
     move_speed = 50.0
-    turn_speed = 10.0
+    turn_speed = 50.0
 
-    evaporation_speed = 1.0
-    diffusion_speed = 1.0
-    sensor_angle = 0.3
-    sensor_distance = 9.0
+    evaporation_speed = 5.0
+    diffusion_speed = 10.0
+    sensor_angle = 0.83
     sensor_size = 1
+    sensor_distance = 10.0
 
-    color1 = (0, 0, 0)
-    color2 = (1, 1, 1)
+    color1 = (1,1,1)
+    color2 = (66/255, 135/255, 245/255)
 
 
 class SlimeWindow(mglw.WindowConfig):
@@ -40,13 +41,15 @@ class SlimeWindow(mglw.WindowConfig):
     window_size = (1280, 720)
     resource_dir = (pathlib.Path(__file__).parent / "resources").resolve()
     map_size = (2560, 1440)
+    aspect_ratio = None
     local_size = 1024
-    vsync = True
+    vsync = False
+    samples = 16
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         imgui.create_context()
-        self.wnd.ctx.error
+
         self.imgui = ModernglWindowRenderer(self.wnd)
 
         self.world_texture01 = self.ctx.texture(self.map_size, 1, dtype="f1")
@@ -65,6 +68,8 @@ class SlimeWindow(mglw.WindowConfig):
         self.update_uniforms()
 
         self.quad_fs = quad_fs(normals=False)
+        
+        self.videocapture = mglw.capture.FFmpegCapture(source=self.wnd.fbo)
 
     def restart_sim(self):
         self.world_texture01.release()
@@ -119,8 +124,8 @@ class SlimeWindow(mglw.WindowConfig):
         self.world_texture02.bind_to_image(0, read=False, write=True)
         self.slimes.bind_to_storage_buffer(2)
 
-        self.compute_shader["dt"] = frame_time
-        self.blurr["dt"] = frame_time
+        # self.compute_shader["dt"] = frame_time
+        # self.blurr["dt"] = frame_time
 
         group_size = int(math.ceil(SlimeConfig.N / self.local_size))
         self.compute_shader.run(group_size, 1, 1)
@@ -133,6 +138,8 @@ class SlimeWindow(mglw.WindowConfig):
             self.world_texture02,
             self.world_texture01,
         )
+
+        self.videocapture.save()
 
         self.render_ui()
 
@@ -153,14 +160,14 @@ class SlimeWindow(mglw.WindowConfig):
             )
             changed = changed or c
             c, SlimeConfig.evaporation_speed = imgui.slider_float(
-                "Evaporation speed", SlimeConfig.evaporation_speed, 0.1, 10
+                "Evaporation speed", SlimeConfig.evaporation_speed, 0.1, 20
             )
             changed = changed or c
             c, SlimeConfig.diffusion_speed = imgui.slider_float(
                 "Diffusion speed",
                 SlimeConfig.diffusion_speed,
                 0.1,
-                10,
+                20,
             )
             changed = changed or c
             c, SlimeConfig.sensor_angle = imgui.slider_float(
@@ -181,7 +188,7 @@ class SlimeWindow(mglw.WindowConfig):
                 "Sensor distance",
                 SlimeConfig.sensor_distance,
                 1,
-                10,
+                25,
             )
             changed = changed or c
             if changed:
@@ -222,6 +229,14 @@ class SlimeWindow(mglw.WindowConfig):
         self.imgui.resize(width, height)
 
     def key_event(self, key, action, modifiers):
+        keys = self.wnd.keys
+        if action == keys.ACTION_PRESS and key == keys.R:
+            self.videocapture.start_capture(
+                filename="video.mp4",
+                framerate=30
+            )
+        if action == keys.ACTION_PRESS and key == keys.F:
+            self.videocapture.release()
         self.imgui.key_event(key, action, modifiers)
 
     def mouse_position_event(self, x, y, dx, dy):

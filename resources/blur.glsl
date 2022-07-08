@@ -26,10 +26,11 @@ float blured(ivec2 co) {
     return sum / 9.;
 }
 
-uniform float dt;
+// uniform float dt;
 uniform float diffuseSpeed;
 uniform float evaporateSpeed;
 
+#define dt 0.0166
 
 void main() {
     ivec2 texelPos = ivec2(gl_GlobalInvocationID.xy);
