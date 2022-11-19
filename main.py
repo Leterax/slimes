@@ -190,8 +190,7 @@ class SlimeWindow(mglw.WindowConfig):
                 1,
                 25,
             )
-            changed = changed or c
-            if changed:
+            if changed := changed or c:
                 self.update_uniforms()
             imgui.pop_item_width()
 
